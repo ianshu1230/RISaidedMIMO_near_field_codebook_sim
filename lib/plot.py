@@ -6,7 +6,37 @@ from .signal import simulate_received_signal, generate_RIS_positions
 
 
 
+def plot_1D_power_pattern(w, tx_pos, Nr, phi, freq, x_range=30, grid_size=200):
+    """
+    畫 1D 功率分布 (沿著角度 phi 的直線)
+    w      : (Nt,) 發射波束成形權重
+    tx_pos : (Nt,3) Tx 天線位置
+    Nr     : Rx 陣列天線數
+    phi    : 直線角度 (rad)
+    freq   : 頻率 Hz
+    x_range: 掃描範圍 (±x_range)
+    grid_size: 掃描點數
+    """
+    c = 3e8
+    wavelength = c / freq
+    d = wavelength / 2  # Rx 間距 (ULA)
+    x_vals = np.linspace(0, x_range, grid_size)
+    P = np.zeros(len(x_vals))
+    for i, x in enumerate(x_vals):
+        y = x * np.tan(phi)  # 直線方程式
+        rx_pos = np.array([[(m - (Nr - 1) / 2) * d + x, y, 0] for m in range(Nr)])  # Rx ULA (中心在 (x,y,0))
+        _, P_rx = simulate_received_signal(w, tx_pos, rx_pos, freq)
+        P[i] = P_rx
+    P_dBm = 10 * torch.log10(torch.tensor(P, dtype=torch.float32, device='cuda')) + 30
+    P_dBm = P_dBm.cpu().numpy()
+    
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot(x_vals, P_dBm)
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("Received Power (dBm)")
+    ax.set_title(f"1D Power Pattern at φ={phi} rad")
 
+    return fig, x_vals, P_dBm
 
 def plot_RIS_power_map(w, tx_pos, freq, RIS_elements = (60, 2), plane = "yz", xy_range=30, grid_size=100):
     """

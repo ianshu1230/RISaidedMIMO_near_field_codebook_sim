@@ -6,9 +6,6 @@ from .channel import nearField_channel, farField_channel
 這裡負責生成訊號以及雜訊， 並且生成一些topology相關的東西
 """
 
-
-d = 0.5  # antenna spacing (in wavelength)
-c = 3e8  # speed of light (m/s)
 def generate_RIS_positions(RIS_element=(60, 2), freq=30e9, d=0.5, pos=(0, 0, 0), plane='yz'):
     """
     產生 RIS 元件位置 (中心為基準)
