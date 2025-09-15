@@ -2,9 +2,28 @@ import numpy as np
 import torch as torch
 from math import sqrt
 
+
+
 """
 這裡負責計算通道矩陣
 """
+
+
+def cascade_channel(H1, H2, RIS_phase):
+    """
+    計算級聯通道矩陣 H = H2 * diag(RIS_phase) * H1
+    H1        : (M, N) Tx -> RIS channel
+    H2        : (L, M) RIS -> Rx channel
+    RIS_phase : (M,)   RIS 相位向量
+    Returns:
+    H         : (L, N) 級聯通道矩陣
+    """
+    # (M, N)，每一行乘上 RIS_phase
+    effective_H1 = H1 * RIS_phase.unsqueeze(1)  
+    # (L, N)
+    H = H2 @ effective_H1
+    return H
+
 
 def nearField_channel(tx_pos, rx_pos, freq, c=3e8):
     """

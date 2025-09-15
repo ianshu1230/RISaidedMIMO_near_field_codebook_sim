@@ -1,10 +1,48 @@
 import torch
 import numpy as np
-from .channel import nearField_channel, farField_channel
+from .channel import nearField_channel, farField_channel, cascade_channel
 
 """
 這裡負責生成訊號以及雜訊， 並且生成一些topology相關的東西
 """
+
+def BS_RIS_UE_power_signal(TX_pos, RIS_pos, RX_pos, w, RIS_phase, freq, snr_dB=None):
+    """
+    模擬 Tx -> RIS -> Rx 的接收信號 & 功率
+    TX_pos    : (Nt,3) Tx 天線位置
+    RIS_pos   : (M,3) RIS 元件位置
+    RX_pos    : (Nr,3) Rx 天線位置
+    w         : (Nt,) beamforming weight (torch.complex64, cuda)
+    RIS_phase : (M,)   RIS 相位向量 (torch.complex64, cuda)
+    freq      : 頻率 Hz
+    snr_dB    : 若給定，會加上 AWGN 雜訊
+    """
+    # 通道矩陣 H1 (M, Nt)
+    H1 = nearField_channel(TX_pos, RIS_pos, freq)  
+    # 通道矩陣 H2 (Nr, M)
+    H2 = nearField_channel(RIS_pos, RX_pos, freq)  
+
+    # 級聯通道矩陣 H = H2 * diag(RIS_phase) * H1  (Nr, Nt)
+    H = cascade_channel(H1, H2, RIS_phase)
+
+    # 接收信號 (Nr,)
+    y = H @ w  
+
+    # 接收功率
+    P_rx = torch.sum(torch.abs(y)**2).item()
+
+    if snr_dB is not None:
+        # 計算雜訊功率
+        noise_power = P_rx / (10**(snr_dB/10))
+        noise = torch.sqrt(torch.tensor(noise_power/2)) * (
+            torch.randn_like(y, dtype=torch.float32) 
+            + 1j*torch.randn_like(y, dtype=torch.float32)
+        )
+        y_noisy = y + noise
+        return y_noisy, P_rx
+    else:
+        return y, P_rx
+
 
 def generate_RIS_positions(RIS_element=(60, 2), freq=30e9, d=0.5, pos=(0, 0, 0), plane='yz'):
     """

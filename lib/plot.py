@@ -1,9 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from .channel import nearField_channel, farField_channel
-from .signal import simulate_received_signal, generate_RIS_positions
-
+from .system import *
 
 
 def plot_1D_power_pattern(w, tx_pos, Nr, phi, freq, x_range=30, grid_size=200):
@@ -40,7 +38,7 @@ def plot_1D_power_pattern(w, tx_pos, Nr, phi, freq, x_range=30, grid_size=200):
 
 def plot_RIS_power_map(w, tx_pos, freq, RIS_elements = (60, 2), plane = "yz", xy_range=30, grid_size=100):
     """
-    掃描 Rx 陣列中心點位置，計算接收功率分布 (直角座標)
+    掃描 Rx 陣列中心點位置，計算接收功率分布 (直角座標) (假設 Rx 是一個 RIS)
     
     w        : (Nt,) 發射波束成形權重
     tx_pos   : (Nt,3) Tx 天線位置
@@ -163,44 +161,5 @@ def plot_near_field_beampattern_polar(w, tx_pos, freq, r_range=50, grid_size=200
     plt.xlabel("r (m)")
     plt.ylabel("θ (rad)")
     plt.title("Near-field Beampattern (polar domain)")
-    plt.show()
-
-
-def plot_near_field_beampattern(w, tx_pos, freq, xy_range=30, grid_size=200):
-    """
-    畫 near-field beampattern (直角座標, x-y 平面)
-
-    w       : (Nt,) beamforming weight (torch.complex64, cuda)
-    tx_pos  : (Nt,3) numpy array, antenna位置
-    freq    : 頻率 Hz
-    xy_range: 掃描範圍 (±xy_range)
-    grid_size: 掃描點數
-    """
-    # 建立掃描平面 (x-y)
-    x_vals = np.linspace(-xy_range, xy_range, grid_size)
-    y_vals = np.linspace(0.1, xy_range, grid_size)  # 避免距離=0
-    P = np.zeros((len(y_vals), len(x_vals)))
-
-    for i, y in enumerate(y_vals):
-        for j, x in enumerate(x_vals):
-            rx_point = np.array([[x, y, 0]])  # 接收點在 x-y 平面
-            H = nearField_channel(tx_pos, rx_point, freq)  # (1, Nt)
-            y_rx = H @ w  # 輸出信號
-            P[i, j] = torch.abs(y_rx).item()**2
-
-    # Normalize
-    #P = P / np.max(P)
-    P_dB = 10 * torch.log10(torch.tensor(P, dtype=torch.float32, device='cuda'))
-    P_dB = P_dB - torch.max(P_dB)
-    P_dB = P_dB.cpu().numpy()
-
-    # 畫圖 (x-y 平面功率分布)
-    plt.figure(figsize=(6, 5))
-    plt.imshow(P_dB, extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]],
-               aspect="auto", origin="lower", cmap="jet")
-    plt.colorbar(label="Normalized Power")
-    plt.xlabel("x (m)")
-    plt.ylabel("y (m)")
-    plt.title("Near-field Beampattern (Cartesian coordinates)")
     plt.show()
 
