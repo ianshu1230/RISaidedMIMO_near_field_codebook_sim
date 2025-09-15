@@ -25,42 +25,34 @@ def cascade_channel(H1, H2, RIS_phase):
     return H
 
 
-def nearField_channel(tx_pos, rx_pos, freq, c=3e8):
-    """
-    Calculate the near-field channel between a transmitter and receiver.
 
-    Parameters:
-    tx_pos : np.ndarray
-        Transmitter position (3D coordinates).
-    rx_pos : np.ndarray
-        Receiver position (3D coordinates).
-    freq : float
-        Frequency of the signal in Hz.
-    c : float, optional
-        Speed of light in m/s. Default is 3e8 m/s.
-    num_antennas_tx : int
-        Number of antennas at the transmitter.
-    num_antennas_rx : int
-        Number of antennas at the receiver.
-    Returns:
-    torch.ndarray
-        Near-field array response matrix of shape (M, N).
-
-    divece : cuda (use torch)
-    """
+def nearField_channel(tx_pos, rx_pos, freq, c=3e8, normalize=True):
     wavelength = c / freq
     k = 2 * np.pi / wavelength
-    tx_pos = torch.tensor(tx_pos, dtype=torch.float32).cuda()
-    rx_pos = torch.tensor(rx_pos, dtype=torch.float32).cuda()
-    num_antennas_tx = tx_pos.shape[0]
-    num_antennas_rx = rx_pos.shape[0]
-    H = torch.zeros((num_antennas_rx, num_antennas_tx), dtype=torch.complex64).cuda()
 
-    for m in range(num_antennas_rx):
-        for n in range(num_antennas_tx):
-            d = torch.norm(rx_pos[m] - tx_pos[n])
-            H[m, n] = torch.exp(-1j * k * d)  / d  # free-space path loss
+    tx = torch.tensor(tx_pos, dtype=torch.float32).cuda()
+    rx = torch.tensor(rx_pos, dtype=torch.float32).cuda()
+    Nt = tx.shape[0]
+    Nr = rx.shape[0]
+
+    H = torch.zeros((Nr, Nt), dtype=torch.complex64).cuda()
+    eps = 1e-12  # 避免除以零
+    for m in range(Nr):
+        for n in range(Nt):
+            d = torch.norm(rx[m] - tx[n]).clamp(min=eps)
+            # kd = (k * d).to(torch.complex64)
+            # compute terms (use complex dtype)
+            term_rad = (k**2) / d
+            term_ind = 1j * k / (d**2)
+            term_reac = - 1.0 / (d**3)
+            val = (term_rad + term_ind + term_reac) * torch.exp(-1j * k * d)
+            H[m, n] = val
+
+    if normalize:
+        # 常做法：把矩陣依某種尺度 normalize（例如使 Frobenius norm 為 1 或使遠場時 amplitude 與 Friis 相符）
+        H = H / torch.max(torch.abs(H))
     return H
+
 
 def farField_channel(num_antennas_tx, num_antennas_rx, angle_tx, angle_rx, freq, d=0.5, c=3e8):
     """

@@ -128,7 +128,7 @@ def plot_rx_power_map(w, tx_pos, freq, Nr=8, xy_range=30, grid_size=100):
     ax.set_ylabel("y (m)")
     ax.set_title("Rx Power Map (Cartesian coordinates)")
 
-    return fig, ax
+    return fig, P_dBm
 
 
 def plot_near_field_beampattern_polar(w, tx_pos, freq, r_range=50, grid_size=200, theta_range=np.pi/2):

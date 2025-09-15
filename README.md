@@ -18,7 +18,7 @@
 RISaidedMIMO_near_field_codebook_sim
 /lib     
     /system/  實作系統模型
-    /opt/     實作最佳化演算法
+    /opt/     實作最佳化演算法 (還需要整理)
     /__init__.py
     plt.py    繪製結果圖
 /result       存放結果圖
