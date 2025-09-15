@@ -1,11 +1,25 @@
 # RIS aided near-field MIMO system
+## Overview
+參考下列論文提供RIS aided near-field MIMO系統的模擬  
+並且整理成函式庫方便使用  
+包含 :  
+- 通道模擬
+- 繪製功率分布
+- 生成topology
+
+
+各式最佳化演算法以及詳細function文件還在整理中
+## Dependency
+- pytorch
+- numpy
+- matplotlib
 ## Structure
 ```
 RISaidedMIMO_near_field_codebook_sim
 /lib     
     /system/  實作系統模型
     /opt/     實作最佳化演算法
-    /init.py
+    /__init__.py
     plt.py    繪製結果圖
 /result       存放結果圖
 /main.py      測試程式 設定系統參數
